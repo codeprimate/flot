@@ -23,32 +23,29 @@ plots, you can just fix the size of their placeholders.
 
 
 (function ($) {
+    var redrawing = 0;
     var options = { }; // no options
 
     function init(plot) {
-        function onResize() {
-            var placeholder = plot.getPlaceholder();
-
-            // somebody might have hidden us and we can't plot
-            // when we don't have the dimensions
-            if (placeholder.width() == 0 || placeholder.height() == 0)
-                return;
-
-            plot.resize();
-            plot.setupGrid();
-            plot.draw();
-        }
-        
         function bindEvents(plot, eventHolder) {
-            plot.getPlaceholder().resize(onResize);
-        }
+            if (!redrawing)
+                plot.getPlaceholder().resize(onResize);
 
-        function shutdown(plot, eventHolder) {
-            plot.getPlaceholder().unbind("resize", onResize);
+            function onResize() {
+                var placeholder = plot.getPlaceholder();
+
+                // somebody might have hidden us and we can't plot
+                // when we don't have the dimensions
+                if (placeholder.width() == 0 || placeholder.height() == 0)
+                    return;
+                
+                ++redrawing;
+                $.plot(placeholder, plot.getData(), plot.getOptions());
+                --redrawing;
+            }
         }
         
         plot.hooks.bindEvents.push(bindEvents);
-        plot.hooks.shutdown.push(shutdown);
     }
     
     $.plot.plugins.push({

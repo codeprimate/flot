@@ -81,13 +81,11 @@ The plugin allso adds the following methods to the plot object:
         // make this plugin much slimmer.
         var savedhandlers = {};
 
-        var mouseUpHandler = null;
-        
         function onMouseMove(e) {
             if (selection.active) {
-                updateSelection(e);
-                
                 plot.getPlaceholder().trigger("plotselecting", [ getSelection() ]);
+
+                updateSelection(e);
             }
         }
 
@@ -111,24 +109,18 @@ The plugin allso adds the following methods to the plot object:
             setSelectionPos(selection.first, e);
 
             selection.active = true;
-
-            // this is a bit silly, but we have to use a closure to be
-            // able to whack the same handler again
-            mouseUpHandler = function (e) { onMouseUp(e); };
             
-            $(document).one("mouseup", mouseUpHandler);
+            $(document).one("mouseup", onMouseUp);
         }
 
         function onMouseUp(e) {
-            mouseUpHandler = null;
-            
             // revert drag stuff for old-school browsers
             if (document.onselectstart !== undefined)
                 document.onselectstart = savedhandlers.onselectstart;
             if (document.ondrag !== undefined)
                 document.ondrag = savedhandlers.ondrag;
 
-            // no more dragging
+            // no more draggy-dee-drag
             selection.active = false;
             updateSelection(e);
 
@@ -207,12 +199,13 @@ The plugin allso adds the following methods to the plot object:
             }
         }
 
-        // function taken from markings support in Flot
+        // taken from markings support
         function extractRange(ranges, coord) {
-            var axis, from, to, key, axes = plot.getAxes();
+            var axis, from, to, axes, key;
 
-            for (var k in axes) {
-                axis = axes[k];
+            axes = plot.getUsedAxes();
+            for (i = 0; i < axes.length; ++i) {
+                axis = axes[i];
                 if (axis.direction == coord) {
                     key = coord + axis.n + "axis";
                     if (!ranges[key] && axis.n == 1)
@@ -241,6 +234,7 @@ The plugin allso adds the following methods to the plot object:
             
             return { from: from, to: to, axis: axis };
         }
+        
         
         function setSelection(ranges, preventEvent) {
             var axis, range, o = plot.getOptions();
@@ -285,10 +279,11 @@ The plugin allso adds the following methods to the plot object:
 
         plot.hooks.bindEvents.push(function(plot, eventHolder) {
             var o = plot.getOptions();
-            if (o.selection.mode != null) {
+            if (o.selection.mode != null)
                 eventHolder.mousemove(onMouseMove);
+
+            if (o.selection.mode != null)
                 eventHolder.mousedown(onMouseDown);
-            }
         });
 
 
@@ -319,15 +314,6 @@ The plugin allso adds the following methods to the plot object:
                 ctx.restore();
             }
         });
-        
-        plot.hooks.shutdown.push(function (plot, eventHolder) {
-            eventHolder.unbind("mousemove", onMouseMove);
-            eventHolder.unbind("mousedown", onMouseDown);
-            
-            if (mouseUpHandler)
-                $(document).unbind("mouseup", mouseUpHandler);
-        });
-
     }
 
     $.plot.plugins.push({
@@ -339,6 +325,6 @@ The plugin allso adds the following methods to the plot object:
             }
         },
         name: 'selection',
-        version: '1.1'
+        version: '1.0'
     });
 })(jQuery);
